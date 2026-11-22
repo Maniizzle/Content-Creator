@@ -1,0 +1,17 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/EventContent.Api/EventContent.Api.csproj" />
+    <Project Path="src/EventContent.Application/EventContent.Application.csproj" />
+    <Project Path="src/EventContent.Contracts/EventContent.Contracts.csproj" />
+    <Project Path="src/EventContent.Domain/EventContent.Domain.csproj" />
+    <Project Path="src/EventContent.Infrastructure/EventContent.Infrastructure.csproj" />
+    <Project Path="src/EventContent.Migrator/EventContent.Migrator.csproj" />
+  </Folder>
+  <Folder Name="/tests/" />
+  <Folder Name="/tests/Integration/">
+    <Project Path="tests/Integration/EventContent.IntegrationTests/EventContent.IntegrationTests.csproj" />
+  </Folder>
+  <Folder Name="/tests/Unit/">
+    <Project Path="tests/Unit/EventContent.UnitTests/EventContent.UnitTests.csproj" />
+  </Folder>
+</Solution>

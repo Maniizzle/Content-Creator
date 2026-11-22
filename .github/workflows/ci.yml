@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend (build, unit + integration tests)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore EventContent.slnx
+      - name: Build (warnings are errors)
+        run: dotnet build EventContent.slnx --no-restore -c Release
+      - name: Unit tests
+        run: dotnet test tests/Unit/EventContent.UnitTests --no-build -c Release --logger "console;verbosity=normal"
+      - name: Integration tests (PostgreSQL via Testcontainers)
+        run: dotnet test tests/Integration/EventContent.IntegrationTests --no-build -c Release --logger "console;verbosity=normal"
+      - name: Check formatting
+        run: dotnet format EventContent.slnx --verify-no-changes --no-restore --severity warn
+      - name: Vulnerable packages
+        run: |
+          dotnet list EventContent.slnx package --vulnerable --include-transitive 2>&1 | tee vulnerable.txt
+          ! grep -q -i "has the following vulnerable packages" vulnerable.txt
+
+  web:
+    name: Web (lint, typecheck, test, build)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: web
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - name: Audit dependencies (high and above)
+        run: npm audit --omit=dev --audit-level=high
+
+  docker:
+    name: Container images build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - run: docker build -f src/EventContent.Api/Dockerfile -t event-content-api:ci .
+      - run: docker build -f src/EventContent.Migrator/Dockerfile -t event-content-migrator:ci .
+      - run: docker build -t event-content-web:ci web
+
+  secrets:
+    name: Secret scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

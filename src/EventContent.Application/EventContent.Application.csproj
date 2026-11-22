@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <!-- For Microsoft.Extensions.* abstractions (DI, logging) without extra NuGet packages. -->
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\EventContent.Domain\EventContent.Domain.csproj" />
+    <ProjectReference Include="..\EventContent.Contracts\EventContent.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="EventContent.UnitTests" />
+  </ItemGroup>
+</Project>
